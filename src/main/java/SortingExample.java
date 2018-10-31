@@ -29,35 +29,35 @@ public class SortingExample {
                     }
                 }))
                 .apply(Count.perElement())
-                .apply("CreateKey", ParDo.of(new DoFn<KV<String, Long>, KV<String, KV<String, Long>>>() {
+                .apply("CreateKey", ParDo.of(new DoFn<KV<String, Long>, KV<String, KV<Long, String>>>() {
                     @ProcessElement
                     public void processElement(ProcessContext c) {
                         KV<String, Long> element = c.element();
                         String key = element.getKey();
-                        c.output(KV.of("single", KV.of(key, element.getValue())));
+                        c.output(KV.of("single", KV.of(element.getValue(), key )));
                     }
                 }))
                 .apply(GroupByKey.create())
                 .apply("FormatResults",
                         MapElements.via(
-                                new SimpleFunction<KV<String, Iterable<KV<String, Long>>>, String>() {
+                                new SimpleFunction<KV<String, Iterable<KV<Long, String>>>, String>() {
                                     @Override
-                                    public String apply(KV<String, Iterable<KV<String, Long>>> input) {
+                                    public String apply(KV<String, Iterable<KV<Long, String>>> input) {
                                         return StreamSupport.stream(input.getValue().spliterator(), false)
-                                                .collect((Supplier<ArrayList<KV<String, Long>>>) ArrayList::new,
+                                                .collect((Supplier<ArrayList<KV< Long, String>>>) ArrayList::new,
                                                         (al, kv) -> al.add(KV.of(kv.getKey(), kv.getValue())),
                                                         (sb, kv) -> {
                                                         })
                                                 .stream()
                                                 .sorted((kv1, kv2) -> kv2.getKey().compareTo(kv1.getKey()))
                                                 .collect(StringBuilder::new,
-                                                        (sb, kv) -> sb.append(String.format("%20s : %d%n", kv.getKey(), kv.getValue())),
+                                                        (sb, kv) -> sb.append(String.format("%d : %20s%n", kv.getKey(), kv.getValue())),
                                                         (sb, kv) -> {
                                                         }).toString();
                                     }
                                 }
                         ))
-                .apply(TextIO.write().withNumShards(1).to("minimal-wordcount-bible"));
+                .apply(TextIO.write().withNumShards(1).to("c:\\IdeaProjects\\BeamExample\\input\\1q84_sorted_by_counts"));
         p.run().waitUntilFinish();
     }
 }
